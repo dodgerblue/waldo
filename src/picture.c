@@ -164,3 +164,13 @@ struct bitmap_image_ read_bitmap_image(int fd) {
 
 	return result;
 }
+
+void write_bitmap_image(struct bitmap_image_ bi, int fd) {
+	write(fd, &bi.bfh, sizeof(struct bitmap_file_header_));
+	write(fd, &bi.bih, sizeof(struct bitmap_info_header_));
+	write(fd, bi.data, bi.data_size);
+	if (bi.trailer_size > 0) {
+		write(fd, bi.trailer, bi.trailer_size);
+	}
+
+}

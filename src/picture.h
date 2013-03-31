@@ -46,5 +46,6 @@ struct bitmap_image_ {
 };
 
 struct bitmap_image_ read_bitmap_image(int file_descriptor);
+void write_bitmap_image(struct bitmap_image_ bi, int file_descriptor);
 
 #endif

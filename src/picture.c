@@ -56,13 +56,40 @@ void print_dib_header(struct bitmap_info_header_ dh) {
 }
 
 void validate_image(struct bitmap_info_header_ bih) {
+	int error_found = 0;
+	int bytes_per_pixel = 0;
+
 	if (*(long int*) bih.size != DIB_HEADER_SIZE) {
 		fprintf (stderr, "Unsupported DIB header type (size %ld) - currently only %s is supported\n",
 			*(long int*)bih.size, DIB_HEADER_TYPE);
-		exit(1);
+		error_found = 1;
 	}
 
+	if (*(short int*) bih.fields.planes != 1) {
+		perror("Only 1 color planes are supported\n");
+		error_found = 1;
+	}
 
+	if (*(short int*) bih.fields.depth != 24 && *(short int*) bih.fields.depth != 32) {
+		perror("Only 24 and 32 color bit depths can be used for hiding messages\n");
+		error_found = 1;
+	}
+
+	if (*(long int*) bih.fields.compression != 0) {
+		perror("Compressed images are not supported in current implementation\n");
+		error_found = 1;
+	}
+
+	bytes_per_pixel = *(short int*) bih.fields.depth / 8;
+
+	if (*(long int*) bih.fields.data_size != *(long int*) bih.fields.width * *(long int*) bih.fields.height * bytes_per_pixel) {
+		perror("Data size != width * height * depth / 8\n");
+		error_found = 1;
+	}
+
+	if (error_found) {
+		exit(1);
+	}
 }
 
 struct bitmap_info_header_ read_dib_header(int fd) {

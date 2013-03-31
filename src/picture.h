@@ -1,17 +1,46 @@
 #ifndef PICTURE_H_
 #define PICTURE_H_
 
-struct bitmap_file_header {
-	char header_field[2]; // standard reads ASCII BM
-	int size; // size of the bmp in bytes
-	char reserved[4];
-	int offset; // starting address of the byte where the bitmap image data can be found
+#define BMP_IDENTIFIER "BM"
+#define DIB_HEADER_SIZE 40
+#define DIB_HEADER_TYPE "BITMAPINFOHEADER"
+
+struct bitmap_file_header_ {
+	union {
+		char buffer[14];
+		struct {
+			char header_field[2]; // standard reads ASCII BM
+			char size[4]; // size of the bmp in bytes
+			char reserved[4];
+			char offset[4]; // starting address of the byte where the bitmap image data can be found
+		} fields;
+	};
 };
 
-struct bitmap_image {
-	struct bitmap_file_header bmp_header; // the image header
+struct bitmap_info_header_ {
+	char size[4];
+	union {
+		char buffer[36];
+		struct {
+			char width[4]; // image width
+			char height[4]; // image height
+			char planes[2]; // color planes
+			char depth[2]; // color depth
+			char compression[4]; // color compression
+			char data_size[4]; // image data size
+			char horizontal_rule[4]; // bitmap image horizontal rule
+			char vertical_resolution[4]; // bitmap vertical image resolution
+			char colors[4]; // number of colors user
+			char vip_colors[4]; // number of important colors
+		} fields;
+	};
 };
 
-struct bitmap_image read_bitmap_image(int file_descriptor);
+struct bitmap_image_ {
+	struct bitmap_file_header_ bfh; // the image header
+	struct bitmap_info_header_ bih; // the DIB header for the image
+};
+
+struct bitmap_image_ read_bitmap_image(int file_descriptor);
 
 #endif

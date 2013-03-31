@@ -15,7 +15,7 @@ void print_usage(char *name) {
 
 int main(int argc, char **argv) {
 	int fd;
-	struct bitmap_image image;
+	struct bitmap_image_ image;
 
 	if (argc != 3) {
 		print_usage(argv[0]);

@@ -15,4 +15,4 @@ picture.o: src/picture.c
 .PHONY: clean
 
 clean:
-	rm test_picture *.o
+	rm -f test_picture *.o

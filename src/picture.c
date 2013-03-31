@@ -70,8 +70,8 @@ void validate_image(struct bitmap_info_header_ bih) {
 		error_found = 1;
 	}
 
-	if (*(short int*) bih.fields.depth != 24 && *(short int*) bih.fields.depth != 32) {
-		perror("Only 24 and 32 color bit depths can be used for hiding messages\n");
+	if (*(short int*) bih.fields.depth != 24 ) {
+		perror("Only 24 color bit depth is supported\n");
 		error_found = 1;
 	}
 
@@ -113,11 +113,54 @@ struct bitmap_info_header_ read_dib_header(int fd) {
 
 struct bitmap_image_ read_bitmap_image(int fd) {
 	struct bitmap_image_ result;
+	ssize_t read_bytes;
 
 	memset(&result, 0, sizeof(struct bitmap_image_));
 
 	result.bfh = read_bitmap_file_header(fd);
 	result.bih = read_dib_header(fd);
+
+	// allocate space for the image bytes
+	result.data_size = *(long int*)result.bih.fields.data_size;
+	result.data = malloc (result.data_size);
+	if (result.data == NULL) {
+		perror ("Unable to allocate memory for the image data\n");
+		exit(1);
+	}
+
+	read_bytes = read(fd, result.data, result.data_size);
+	if (read_bytes == -1) {
+		perror ("Unable to read the image data bytes\n");
+		exit(1);
+	}
+
+	// allocate space for the image trailer
+	result.trailer_size = *(long int*) result.bfh.fields.size -
+		sizeof(struct bitmap_file_header_) -
+		sizeof(struct bitmap_info_header_) -
+		result.data_size;
+
+	if (result.trailer_size < 0) {
+		perror("file size < headers size + data size\n");
+		exit(1);
+	}
+
+	if (result.trailer_size > 0) {
+		result.trailer = malloc(result.trailer_size);
+		if (result.trailer == NULL) {
+			perror ("Unable to allocate memory for the image trailer\n");
+			exit(1);
+		}
+
+		read_bytes = read(fd, result.trailer, result.trailer_size);
+		if (read_bytes == -1) {
+			perror ("Unable to read image trailer bytes\n");
+			exit(1);
+		}
+	}
+	else {
+		result.trailer = NULL;
+	}
 
 	return result;
 }

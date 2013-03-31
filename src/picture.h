@@ -39,6 +39,10 @@ struct bitmap_info_header_ {
 struct bitmap_image_ {
 	struct bitmap_file_header_ bfh; // the image header
 	struct bitmap_info_header_ bih; // the DIB header for the image
+	long int data_size; // the image data size
+	char *data; // the actual image data
+	long int trailer_size; // the image trailer size
+	char *trailer; // the image trailer - if any - to represent the image in the same state as it was at the beginning
 };
 
 struct bitmap_image_ read_bitmap_image(int file_descriptor);

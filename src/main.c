@@ -5,6 +5,9 @@
 #include <fcntl.h>
 
 #include "picture.h"
+#include "cipher.h"
+
+extern struct cipher_method_ my_cipher_method;
 
 void print_usage(char *name) {
 	printf("\n\
@@ -34,6 +37,9 @@ int main(int argc, char **argv) {
 	image = read_bitmap_image(fd);
 
 	close(fd);
+
+	// do a little messing around here
+	test_cipher(my_cipher_method, image);
 
 	sprintf(new_image, "%s_new.bmp", argv[1]);
 

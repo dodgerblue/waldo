@@ -9,6 +9,7 @@
 #include "cipher.h"
 
 extern struct cipher_method_ my_cipher_method;
+extern struct hash_method_ hash_methods[];
 
 void print_usage(char *name) {
 	printf("\n\
@@ -20,8 +21,9 @@ void print_usage(char *name) {
 
 int main(int argc, char **argv) {
 	int fd;
-	struct bitmap_image_ *image;
+	struct bitmap_image_ *image = NULL;
 	char new_image[100];
+	struct wrapped_message_ *msg = NULL;
 
 	if (argc != 3) {
 		print_usage(argv[0]);
@@ -44,6 +46,10 @@ int main(int argc, char **argv) {
 
 	// do a little messing around here
 	test_cipher(my_cipher_method, image);
+
+	// let's cipher the message
+	msg = (struct wrapped_message_ *) wrap_message(hash_methods[1], argv[2]);
+	print_wrapped_message(msg);
 
 	sprintf(new_image, "%s_new.bmp", argv[1]);
 

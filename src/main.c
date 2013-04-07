@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "picture.h"
 #include "cipher.h"
@@ -19,7 +20,7 @@ void print_usage(char *name) {
 
 int main(int argc, char **argv) {
 	int fd;
-	struct bitmap_image_ image;
+	struct bitmap_image_ *image;
 	char new_image[100];
 
 	if (argc != 3) {
@@ -30,13 +31,16 @@ int main(int argc, char **argv) {
 	printf("Image file: %s\n", argv[1]);
 	fd = open(argv[1], O_RDWR);
 	if (fd == -1) {
-		perror("Unable to open image file\n");
+		fprintf(stderr, "Unable to open image file\n");
 		goto out_fail;
 	}
 
 	image = read_bitmap_image(fd);
-
-	close(fd);
+	if (image == NULL) {
+		fprintf(stderr, "Unable to read and parse bitmap image\n");
+		close(fd);
+		goto out_fail;
+	}
 
 	// do a little messing around here
 	test_cipher(my_cipher_method, image);
@@ -45,20 +49,14 @@ int main(int argc, char **argv) {
 
 	fd = open(new_image, O_RDWR | O_CREAT | O_TRUNC);
 	if (fd == -1) {
-		perror("Unable to open new image file for writing");
+		fprintf(stderr, "Unable to open new image file for writing\n");
 		goto out_fail;
 	}
 
 	write_bitmap_image(image, fd);
 	close(fd);
 
-	if (image.data != NULL) {
-		free(image.data);
-	}
-
-	if (image.trailer != NULL) {
-		free(image.trailer);
-	}
+	free_bitmap_image(image);
 
 	return 0;
 

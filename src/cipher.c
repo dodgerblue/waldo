@@ -6,14 +6,14 @@ long int get_max_message_length(struct cipher_method_ m, long int data_size) {
 	return data_size / m.ratio;
 }
 
-void test_cipher(struct cipher_method_ m, struct bitmap_image_ img) {
-	long int length = get_max_message_length(m, img.data_size);
+void test_cipher(struct cipher_method_ m, struct bitmap_image_ *img) {
+	long int length = get_max_message_length(m, img->data_size);
 	long int i;
 
 	printf("The maximum ammount of characters you can store in this shit is %ld\n", length);
 
 	for (i = 0; i < length * m.ratio; i += m.ratio) {
-		m.zf(&img.data[i]);
+		m.zf(&img->data[i]);
 	}
 
 }
@@ -27,6 +27,7 @@ void my_hide_func(char *buf, char byte) {
 }
 
 char my_reveal_func(char *buf) {
+	return 'a';
 }
 
 void my_zeroize_func(char *buf) {

@@ -17,6 +17,6 @@ struct cipher_method_ {
 
 long int get_max_message_length(struct cipher_method_ m, long int data_size);
 
-void test_cipher(struct cipher_method_ m, struct bitmap_image_ img);
+void test_cipher(struct cipher_method_ m, struct bitmap_image_ *img);
 
 #endif

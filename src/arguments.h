@@ -4,6 +4,7 @@
 struct arguments_ {
 	int hash_id;
 	int scatter_id;
+	int msg_from_file;
 
 	char *image;
 	char *message;

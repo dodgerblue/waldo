@@ -15,6 +15,7 @@ struct arguments_* alloc_arguments() {
 
 	result->hash_id = 0;
 	result->scatter_id = 0;
+	result->msg_from_file = 0;
 
 	result->image = NULL;
 	result->message = NULL;
@@ -38,6 +39,7 @@ void print_arguments(struct arguments_ *args) {
 	printf("The parsed arguments structure:\n");
 	printf("Hash id: %d\n", args->hash_id);
 	printf("Scatter id: %d\n", args->scatter_id);
+	printf("Message from file: %s\n", args->msg_from_file != 0 ? "yes" : "no");
 	printf("Image file: %s\n", args->image);
 	printf("Message: %s\n", args->message);
 	printf("\n");
@@ -59,6 +61,10 @@ struct arguments_* parse_arguments(int argc, char *argv[]) {
 			case 's':
 				result->scatter_id = atoi(argv[i+1]);
 				i+=2;
+				break;
+			case 'f':
+				result->msg_from_file = 1;
+				i++;
 				break;
 			default:
 				fprintf(stderr, "Unrecognized parameter %s\n", argv[i]);

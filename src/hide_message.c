@@ -24,6 +24,7 @@ void print_usage(char *program_name) {
 	OPTIONS can be one or more of the following: \n \
 	-h <hash method> - the method using for hashing the message\n \
 	-s <scatter method> - the method used for hiding the message\n \
+	-f - the message to hide will be read from a file, provided as the 'message' parameter\n \
 	\n",
 	program_name);
 
@@ -36,7 +37,7 @@ void print_usage(char *program_name) {
 int main(int argc, char *argv[]) {
 	struct arguments_  *args = NULL;
 
-	if (argc < 3) {
+	if (argc < 3 || argv[argc - 1][0] == '-' || argv[argc - 2][0] == '-') {
 		print_usage(argv[0]);
 		return 1;
 	}

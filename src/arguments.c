@@ -49,6 +49,10 @@ void print_arguments(struct arguments_ *args) {
 	printf("\n");
 }
 
+// TODO: better way of parsing arguments
+// - it should only receive 2 and only 2 words without '-'
+// - check whether all parameters are sent correctly
+// - pretty much all that is prone to go wrong should be handled in case it goes wrong
 struct arguments_* parse_arguments(int argc, char *argv[]) {
 	int i;
 	struct arguments_ *result = alloc_arguments();

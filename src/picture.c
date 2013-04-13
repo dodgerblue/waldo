@@ -36,8 +36,6 @@ struct bitmap_file_header_* read_bitmap_file_header(int fd) {
 		goto out_fail_invalid_file_header;
 	}
 
-	print_bitmap_file_header(result);
-
 	return result;
 
 out_fail_invalid_file_header:
@@ -119,8 +117,6 @@ struct bitmap_info_header_* read_dib_header(int fd) {
 		fprintf(stderr, "Unable to read image header file\n");
 		goto out_unable_read;
 	}
-
-	print_dib_header(result);
 
 	if (validate_image(result)) {
 		fprintf(stderr, "Unsupported image format\n");

@@ -59,7 +59,8 @@ struct cipher_method_ my_cipher_method = {
 
 // ============================================================================
 // Hashing methods and functions
-#define TEMP_FILENAME "pure_vitamin_c"
+#define TEMP_FILENAME_IN "pure_vitamin_c"
+#define TEMP_FILENAME_OUT "tis_but_a_temp"
 
 char *hash_message(struct hash_method_ hm, char *message) {
 	char cmd[100], *result;
@@ -68,15 +69,15 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	ssize_t rw_bytes = 0;
 
 	// write the message to a temporary file
-	fd = open(TEMP_FILENAME, O_RDWR | O_CREAT | O_TRUNC);
+	fd = open(TEMP_FILENAME_IN, O_RDWR | O_CREAT, 0666);
 	if (fd == -1) {
-		fprintf(stderr, "Unable to open temporary file %s\n", TEMP_FILENAME);
+		fprintf(stderr, "Unable to open temporary file %s\n", TEMP_FILENAME_IN);
 		goto out_fail;
 	}
 
 	rw_bytes = write(fd, message, length);
 	if (rw_bytes == -1) {
-		fprintf(stderr, "Unable to write to temporary file %s\n", TEMP_FILENAME);
+		fprintf(stderr, "Unable to write to temporary file %s\n", TEMP_FILENAME_IN);
 		close(fd);
 		goto out_fail;
 	}
@@ -84,7 +85,7 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	close(fd);
 
 	// 2. prepare and run the command in a shell
-	snprintf(cmd, 100, "%s %s > %s", hm.cmd, TEMP_FILENAME, TEMP_FILENAME);
+	snprintf(cmd, 100, "%s %s > %s", hm.cmd, TEMP_FILENAME_IN, TEMP_FILENAME_OUT);
 
 	ret = system((const char *) cmd);
 	if (ret == -1) {
@@ -93,7 +94,7 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	}
 
 	// 3. read the resulting hash from the same temporary file
-	fd = open(TEMP_FILENAME, O_RDONLY);
+	fd = open(TEMP_FILENAME_OUT, O_RDONLY);
 	if (fd == -1) {
 		fprintf(stderr, "Unable to open the temporary file for reading the hash\n");
 		goto out_fail;
@@ -112,7 +113,8 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	}
 
 	close(fd);
-	unlink(TEMP_FILENAME); // TODO check return code
+	// unlink(TEMP_FILENAME_IN); // TODO check return code
+	// unlink(TEMP_FILENAME_OUT); // TODO check return code
 
 	return result;
 
@@ -164,7 +166,14 @@ struct hash_method_ hash_methods[] = {
 
 void print_wrapped_message(struct wrapped_message_ *msg) {
 	unsigned int i;
-	unsigned int length = msg->msg_length - sizeof(struct wrapped_message_) - hash_methods[msg->hash_id].hash_length;
+	unsigned int length;
+
+	if (msg == NULL) {
+		fprintf(stderr, "Unable to print NULL message structure");
+		return;
+	}
+
+	length = msg->msg_length - sizeof(struct wrapped_message_) - hash_methods[msg->hash_id].hash_length;
 
 	printf("Wrapped message:\n");
 	printf("Hash type: %s\n", hash_methods[msg->hash_id].name);

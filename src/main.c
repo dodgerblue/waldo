@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
 	sprintf(new_image, "%s_new.bmp", argv[1]);
 
-	fd = open(new_image, O_RDWR | O_CREAT | O_TRUNC);
+	fd = open(new_image, O_RDWR | O_CREAT | O_TRUNC, 0666);
 	if (fd == -1) {
 		fprintf(stderr, "Unable to open new image file for writing\n");
 		goto out_fail;

@@ -1,10 +1,13 @@
 #ifndef ARGUMENTS_H_
 #define ARGUMENTS_H_
 
+#define IMG_SUFFIX "_new.bmp"
+
 struct arguments_ {
 	int hash_id;
 	int scatter_id;
 	int msg_from_file;
+	char *suffix;
 
 	char *image;
 	char *message;

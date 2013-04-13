@@ -25,6 +25,7 @@ void print_usage(char *program_name) {
 	-h <hash method> - the method using for hashing the message\n \
 	-s <scatter method> - the method used for hiding the message\n \
 	-f - the message to hide will be read from a file, provided as the 'message' parameter\n \
+	-r <suffix> - add custom suffix to the new image (default is '_new.bmp')\n \
 	\n",
 	program_name);
 

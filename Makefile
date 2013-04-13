@@ -1,7 +1,7 @@
 CFLAGS = -Wall -g
 CC = gcc
 
-all: test_picture
+all: hide_message
 
 test_picture: main.o picture.o cipher.o
 	$(CC) $(CFLAGS) $^ -o $@

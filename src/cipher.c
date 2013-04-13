@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "cipher.h"
 
@@ -162,6 +163,7 @@ out_fail:
 struct hash_method_ hash_methods[] = {
 	{0, 32, "md5sum", "MD5"},
 	{1, 64, "sha512sum", "SHA512"},
+	{UINT_MAX, 0, "", ""},
 };
 
 void print_wrapped_message(struct wrapped_message_ *msg) {

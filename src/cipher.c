@@ -57,6 +57,10 @@ struct cipher_method_ my_cipher_method = {
 	.zf = my_zeroize_func,
 };
 
+struct cipher_method_ cipher_methods[] = {
+	{MY_CIPHER_COUNT, my_hide_func, my_reveal_func, my_zeroize_func},
+};
+
 
 // ============================================================================
 // Hashing methods and functions
@@ -114,8 +118,8 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	}
 
 	close(fd);
-	// unlink(TEMP_FILENAME_IN); // TODO check return code
-	// unlink(TEMP_FILENAME_OUT); // TODO check return code
+	unlink(TEMP_FILENAME_IN); // TODO check return code
+	unlink(TEMP_FILENAME_OUT); // TODO check return code
 
 	return result;
 
@@ -162,7 +166,11 @@ out_fail:
 
 struct hash_method_ hash_methods[] = {
 	{0, 32, "md5sum", "MD5"},
-	{1, 64, "sha512sum", "SHA512"},
+	{1, 40, "sha1sum", "SHA1"},
+	{2, 56, "sha224sum", "SHA224"},
+	{3, 64, "sha256sum", "SHA256"},
+	{4, 96, "sha384sum", "SHA384"},
+	{5, 128, "sha512sum", "SHA512"},
 	{UINT_MAX, 0, "", ""},
 };
 

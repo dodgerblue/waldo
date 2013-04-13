@@ -120,47 +120,112 @@ out_fail:
 	return NULL;
 }
 
-int main(int argc, char *argv[]) {
+struct arguments_ *prepare_arguments(int argc, char *argv[]) {
 	struct arguments_ *args = NULL;
-	char *message = NULL;
-	struct bitmap_image_ *image = NULL;
 
-	// prepare the arguments
 	if (argc < 3 || argv[argc - 1][0] == '-' || argv[argc - 2][0] == '-') {
 		print_usage(argv[0]);
-		return 1;
+		return NULL;
 	}
 
 	args = parse_arguments(argc, argv);
 	if (args == NULL) {
 		print_usage(argv[0]);
-		return 1;
+		return NULL;
 	}
 
 	if (DEBUG)
 		print_arguments(args);
 
-	// prepare the message to hide
+	return args;
+}
+
+char *prepare_message(struct arguments_ *args) {
+	char *message = NULL;
+
 	message = get_message_to_hide(args->message, args->msg_from_file);
 	if (message == NULL) {
 		fprintf(stderr, "Unable to read message to hide\n");
-		return 1;
+		return NULL;
 	}
 
 	if (DEBUG)
 		printf("Message to hide: %s\n", message);
 
-	// prepare the image structure
+	return message;
+}
+
+struct bitmap_image_ *prepare_image(struct arguments_ *args) {
+	struct bitmap_image_ *image = NULL;
+
 	image = get_image(args->image);
 	if (image == NULL) {
 		fprintf(stderr, "Unable to read the image structure\n");
-		return 1;
+		return NULL;
 	}
 
 	if (DEBUG) {
 		printf("Image read successfully\n");
 		print_bitmap_file_header(image->bfh);
 		print_dib_header(image->bih);
+	}
+
+	return image;
+}
+
+char *prepare_wrapped_message(int hash_type, char *message) {
+	char *msg = NULL;
+	int i;
+
+	// check if hash_type is valid
+	for (i = 0; hash_methods[i].id != UINT_MAX; i++) {
+		if (hash_methods[i].id == hash_type)
+			break;
+	}
+
+	if (hash_methods[i].id == UINT_MAX) {
+		fprintf(stderr, "Undefined hash type\n");
+		return NULL;
+	}
+
+	msg = wrap_message(hash_methods[hash_type], message);
+	if (msg == NULL) {
+		fprintf(stderr, "Unable to wrap message\n");
+		return NULL;
+	}
+
+	if (DEBUG)
+		print_wrapped_message((struct wrapped_message_*) msg);
+
+	return msg;
+}
+
+int main(int argc, char *argv[]) {
+	struct arguments_ *args = NULL;
+	char *message = NULL;
+	struct bitmap_image_ *image = NULL;
+	char *wrapped_message = NULL;
+
+	// prepare the needed structures
+	if ((args = prepare_arguments(argc, argv)) == NULL) {
+		fprintf(stderr, "Unable to prepare arguments\n");
+		return 1;
+	}
+
+	if ((message = prepare_message(args)) == NULL) {
+		fprintf(stderr, "Unable to prepare message\n");
+		return 1;
+	}
+
+	if ((image = prepare_image(args)) == NULL) {
+		fprintf(stderr, "Unable to prepare image\n");
+		return 1;
+	}
+
+	// prepare the wrapped message
+	if ((wrapped_message = prepare_wrapped_message(args->hash_id, message)) == NULL) {
+		fprintf(stderr, "Unable to prepare the wrapped message\n");
+		return 1;
 	}
 
 	free_bitmap_image(image);

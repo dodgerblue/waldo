@@ -9,6 +9,8 @@
 
 #include "cipher.h"
 
+#define DEBUG 1
+
 // ===========================================================================
 // default cipher & hash method functions
 
@@ -205,11 +207,11 @@ char split_byte(char mask, char *byte) {
 	int i;
 
 	for (i = 0; i < 8; i ++) {
-		if ((mask >> i) & 1)
+		if (mask & (1 << i))
 			continue;
 
 		if (*byte & 1)
-			result |= 1 << i;
+			result += 1 << i;
 
 		*byte = *byte >> 1;
 	}
@@ -217,15 +219,41 @@ char split_byte(char mask, char *byte) {
 	return result;
 }
 
+void merge_byte(char mask, char byte, char *res) {
+	int i;
+
+	for (i = 7; i >= 0; i--) {
+		if (mask & (1 << i))
+			continue;
+
+		*res = *res << 1;
+
+		if (byte & (1 << i))
+			*res = *res + 1;
+	}
+}
+
 void hide_byte(char *buf, char byte, struct cipher_method_ m) {
 	int i;
 
-	for (i = 0; i < m.ratio; i++) {
+	for (i = m.ratio - 1; i >= 0; i--) {
 		buf[i] &= m.mask;
 
-		if (byte != 0)
-			buf[i] += split_byte(m.mask, &byte);
+		//if (byte != 0)
+		buf[i] += split_byte(m.mask, &byte);
 	}
+}
+
+char reveal_byte(char *buf, struct cipher_method_ m) {
+	char result = 0;
+	int i;
+
+	for (i = 0; i < m.ratio; i++) {
+		merge_byte(m.mask, buf[i], &result);
+		printf("Original: %x\n", buf[i]);
+	}
+
+	return result;
 }
 
 int zeroize_image(struct bitmap_image_ *image, struct cipher_method_ m) {
@@ -246,4 +274,34 @@ int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *
 		hide_byte(image->data + i*m.ratio, buf[i], m);
 
 	return 0;
+}
+
+char *recover_buffer_from_image(struct bitmap_image_ *image, int scatter_id) {
+	int length = sizeof(unsigned int) + sizeof(unsigned int);
+	char header[length];
+	struct cipher_method_ cm = cipher_methods[scatter_id];
+	int i;
+
+	for (i = 0; i < length; i++)
+		header[i] = reveal_byte(image->data + i*cm.ratio, cm);
+
+	if (DEBUG) {
+		printf("Read message header:\n");
+		printf("Hash id: %u %d\n", *(unsigned int *)header, length);
+		printf("Message length: %u\n", *(unsigned int *)(header + sizeof(unsigned int)));
+
+		for (i = 0; i < 8; i ++)
+			printf("%x ",header[i]);
+		printf("\n");
+	}
+
+	return NULL;
+}
+
+// The message that this function returns must be valid - so that the signature corresponds with the content
+struct wrapped_message_* recover_message_from_image(struct bitmap_image_ *image, int scatter_id, int hash_id) {
+	if (scatter_id != CHAR_MAX && hash_id != UINT_MAX)
+		recover_buffer_from_image(image, scatter_id);
+
+	return NULL;
 }

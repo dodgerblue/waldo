@@ -57,6 +57,6 @@ int is_valid_hash_method(int hash_type);
 int message_fits(struct bitmap_image_ *image, struct wrapped_message_ *msg, struct cipher_method_ m);
 int zeroize_image(struct bitmap_image_ *image, struct cipher_method_ m);
 int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *wrapped_message, struct cipher_method_ m);
-
+struct wrapped_message_* recover_message_from_image(struct bitmap_image_ *image, int scatter_id, int hash_id);
 
 #endif

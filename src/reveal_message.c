@@ -104,10 +104,13 @@ struct bitmap_image_ *prepare_image(struct arguments_ *args) {
 	return image;
 }
 
+
+
 int main(int argc, char *argv[]) {
 	int ret = 0;
 	struct arguments_ *args = NULL;
 	struct bitmap_image_ *image = NULL;
+	struct wrapped_message_ *message = NULL;
 
 	// TODO remove duplicated code by adding an util.{h,c} class
 	// prepare the needed structures
@@ -121,6 +124,21 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Unable to prepare image\n");
 		ret = 1;
 		goto out;
+	}
+
+	if (args->hash_id != UINT_MAX && is_valid_hash_method(args->hash_id) == 0) {
+		fprintf(stderr, "Unsupported hash method\n");
+		ret = 1;
+		goto out;
+	}
+
+	if (args->scatter_id != CHAR_MAX && is_valid_cipher_method(args->scatter_id) == 0) {
+		fprintf(stderr, "Unsupported cipher method\n");
+		ret = 1;
+		goto out;
+	}
+
+	if ((message = recover_message_from_image(image, args->scatter_id, args->hash_id)) == NULL) {
 	}
 
 out:

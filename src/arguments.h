@@ -7,6 +7,7 @@ struct arguments_ {
 	int hash_id;
 	int scatter_id;
 	int msg_from_file;
+	int just_zeroize;
 	char *suffix;
 
 	char *image;

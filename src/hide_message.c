@@ -14,6 +14,7 @@
 #define DEBUG 1
 
 extern struct hash_method_ hash_methods[];
+extern struct cipher_method_ cipher_methods[];
 
 void print_usage(char *program_name) {
 	int i;
@@ -26,6 +27,7 @@ void print_usage(char *program_name) {
 	-h <hash method> - the method using for hashing the message\n \
 	-s <scatter method> - the method used for hiding the message\n \
 	-f - the message to hide will be read from a file, provided as the 'message' parameter\n \
+	-z - just zeroize the bits in the new image, w/o adding any info\n \
 	-r <suffix> - add custom suffix to the new image (default is '_new.bmp')\n \
 	\n",
 	program_name);
@@ -34,6 +36,13 @@ void print_usage(char *program_name) {
 	for (i = 0; hash_methods[i].id != UINT_MAX; i ++) {
 		fprintf(stderr, "\t%u - %s\n", hash_methods[i].id, hash_methods[i].name);
 	}
+	fprintf(stderr, "\n");
+
+	fprintf(stderr, "\tAvailable scatter methods:\n");
+	for (i = 0; cipher_methods[i].id != CHAR_MAX; i ++) {
+		fprintf(stderr, "\t%u - %s - %s\n", cipher_methods[i].id, cipher_methods[i].codename, cipher_methods[i].description);
+	}
+	fprintf(stderr, "\n");
 }
 
 char* get_message_to_hide(char *message, int is_file) {
@@ -175,18 +184,6 @@ struct bitmap_image_ *prepare_image(struct arguments_ *args) {
 
 char *prepare_wrapped_message(int hash_type, char *message) {
 	char *msg = NULL;
-	int i;
-
-	// check if hash_type is valid
-	for (i = 0; hash_methods[i].id != UINT_MAX; i++) {
-		if (hash_methods[i].id == hash_type)
-			break;
-	}
-
-	if (hash_methods[i].id == UINT_MAX) {
-		fprintf(stderr, "Undefined hash type\n");
-		return NULL;
-	}
 
 	msg = wrap_message(hash_methods[hash_type], message);
 	if (msg == NULL) {
@@ -200,37 +197,116 @@ char *prepare_wrapped_message(int hash_type, char *message) {
 	return msg;
 }
 
+int write_back_image(struct bitmap_image_ *image, char *filename, char *suffix) {
+	char *new_filename = NULL;
+	int length = strlen(filename);
+	int fd;
+
+	if (suffix != NULL)
+		length += strlen(suffix);
+	else {
+		length += strlen(IMG_SUFFIX);
+		suffix = IMG_SUFFIX;
+	}
+
+	new_filename = malloc(length);
+	if (new_filename == NULL) {
+		fprintf(stderr, "Unable to allocate memory for write back image filename\n");
+		goto out_fail;
+	}
+
+	sprintf(new_filename, "%s%s", filename, suffix);
+
+	fd = open(new_filename, O_RDWR | O_CREAT | O_TRUNC, 0666);
+	if (fd == -1) {
+		fprintf(stderr, "Unable to open new image file for writing\n");
+		goto out_fail_open;
+	}
+
+	free(new_filename);
+
+	write_bitmap_image(image, fd); // TODO check return code and everything
+	close(fd);
+
+	return 0;
+
+out_fail_open:
+	free(new_filename);
+out_fail:
+	return 1;
+}
+
 int main(int argc, char *argv[]) {
 	struct arguments_ *args = NULL;
 	char *message = NULL;
 	struct bitmap_image_ *image = NULL;
 	char *wrapped_message = NULL;
+	int ret = 0;
 
 	// prepare the needed structures
 	if ((args = prepare_arguments(argc, argv)) == NULL) {
 		fprintf(stderr, "Unable to prepare arguments\n");
-		return 1;
+		ret = 1;
+		goto out;
 	}
 
 	if ((message = prepare_message(args)) == NULL) {
 		fprintf(stderr, "Unable to prepare message\n");
-		return 1;
+		ret = 1;
+		goto out;
 	}
 
 	if ((image = prepare_image(args)) == NULL) {
 		fprintf(stderr, "Unable to prepare image\n");
-		return 1;
+		ret = 1;
+		goto out;
+	}
+
+	if (args->hash_id != 0 && is_valid_hash_method(args->hash_id) == 0) {
+		fprintf(stderr, "Unsupported hash method\n");
+		ret = 1;
+		goto out;
+	}
+
+	if (args->scatter_id != 0 && is_valid_cipher_method(args->scatter_id) == 0) {
+		fprintf(stderr, "Unsupported cipher method\n");
+		ret = 1;
+		goto out;
 	}
 
 	// prepare the wrapped message
 	if ((wrapped_message = prepare_wrapped_message(args->hash_id, message)) == NULL) {
 		fprintf(stderr, "Unable to prepare the wrapped message\n");
-		return 1;
+		ret = 1;
+		goto out;
 	}
 
-	free_bitmap_image(image);
-	free(message);
-	free_arguments(args);
+	// check if the message "fits" in the image
+	if (message_fits(image, (struct wrapped_message_ *) wrapped_message, cipher_methods[args->scatter_id]) == 0) {
+		fprintf(stderr, "The provided image is too small to fit the message\n");
+		ret = 1;
+		goto out;
+	}
 
-	return 0;
+	if (args->just_zeroize) {
+		ret = zeroize_image(image, cipher_methods[args->scatter_id]);
+		if (ret == 1) goto out;
+		goto write_image;
+	}
+
+	ret = hide_message_in_image(image, (struct wrapped_message_ *) wrapped_message, cipher_methods[args->scatter_id]);
+	if (ret == 1) goto out;
+
+write_image:
+	ret = write_back_image(image, args->image, args->suffix);
+
+out:
+	if (image != NULL)
+		free_bitmap_image(image);
+	if (message != NULL)
+		free(message);
+	if (args != NULL)
+		free_arguments(args);
+
+	return ret;
 }

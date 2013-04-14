@@ -16,6 +16,7 @@ struct arguments_* alloc_arguments() {
 	result->hash_id = 0;
 	result->scatter_id = 0;
 	result->msg_from_file = 0;
+	result->just_zeroize = 0;
 	result->suffix = NULL;
 
 	result->image = NULL;
@@ -43,6 +44,7 @@ void print_arguments(struct arguments_ *args) {
 	printf("Hash id: %d\n", args->hash_id);
 	printf("Scatter id: %d\n", args->scatter_id);
 	printf("Message from file: %s\n", args->msg_from_file != 0 ? "yes" : "no");
+	printf("Just zeroize: %s\n", args->just_zeroize != 0 ? "yes" : "no");
 	printf("Output file suffix: %s\n", args->suffix);
 	printf("Image file: %s\n", args->image);
 	printf("Message: %s\n", args->message);
@@ -72,6 +74,10 @@ struct arguments_* parse_arguments(int argc, char *argv[]) {
 				break;
 			case 'f':
 				result->msg_from_file = 1;
+				i++;
+				break;
+			case 'z':
+				result->just_zeroize = 1;
 				i++;
 				break;
 			case 'r':

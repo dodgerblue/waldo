@@ -11,15 +11,16 @@ typedef char (*reveal_func)(char *buf);
 typedef void (*zeroize_func)(char *buf);
 
 struct cipher_method_ {
-	int ratio; // no image bits / no info bits
+	int id;
+	const char *codename;
+	const char *description;
 
-	hide_func hf;
-	reveal_func rf;
-	zeroize_func zf;
+	int ratio; // no image bits / no info bits
+	char mask; // the mask to apply for each byte
 };
 
 long int get_max_message_length(struct cipher_method_ m, long int data_size);
-void test_cipher(struct cipher_method_ m, struct bitmap_image_ *img);
+int is_valid_cipher_method(int cipher_type);
 
 // ============================================================================
 // Structures to compute the hash of the text
@@ -48,5 +49,14 @@ struct wrapped_message_ {
 char *hash_message(struct hash_method_ hm, char *message);
 char *wrap_message(struct hash_method_ hm, char *message);
 void print_wrapped_message(struct wrapped_message_ *msg);
+int is_valid_hash_method(int hash_type);
+
+// ============================================================================
+// Methods that bring it all together
+
+int message_fits(struct bitmap_image_ *image, struct wrapped_message_ *msg, struct cipher_method_ m);
+int zeroize_image(struct bitmap_image_ *image, struct cipher_method_ m);
+int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *wrapped_message, struct cipher_method_ m);
+
 
 #endif

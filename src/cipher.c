@@ -9,6 +9,29 @@
 
 #include "cipher.h"
 
+// ===========================================================================
+// default cipher & hash method functions
+
+struct cipher_method_ cipher_methods[] = {
+	{0,"RAUNCHY", "least 2 bits of each pixel", 4, 0xFC},
+	{1,"SNAPPY","least 1 bit of each pixel", 8, 0xFE},
+	{2,"TANTRIC","least 4 bits of each pixel", 2, 0xF0},
+	{3,"ULTRA","bits 0 and 2 of each pixel", 4, 0xFA},
+	{4,"WIGGLY","bits 1 and 2 of each pixel", 4, 0xF9},
+	{5,"SHIPPY","use ALL the bits!", 1, 0x00},
+	{CHAR_MAX, "", "", 0, 0},
+};
+
+struct hash_method_ hash_methods[] = {
+	{0, 32, "md5sum", "MD5"},
+	{1, 40, "sha1sum", "SHA1"},
+	{2, 56, "sha224sum", "SHA224"},
+	{3, 64, "sha256sum", "SHA256"},
+	{4, 96, "sha384sum", "SHA384"},
+	{5, 128, "sha512sum", "SHA512"},
+	{UINT_MAX, 0, "", ""},
+};
+
 // ============================================================================
 // Sparsing bytes into image data
 
@@ -16,51 +39,22 @@ long int get_max_message_length(struct cipher_method_ m, long int data_size) {
 	return data_size / m.ratio;
 }
 
-void test_cipher(struct cipher_method_ m, struct bitmap_image_ *img) {
-	long int length = get_max_message_length(m, img->data_size);
-	long int i;
+int message_fits(struct bitmap_image_ *image, struct wrapped_message_ *msg, struct cipher_method_ m) {
+	long int max_length = get_max_message_length(m, image->data_size);
 
-	printf("The maximum ammount of characters you can store in this shit is %ld\n", length);
+	return msg->msg_length <= max_length;
+}
 
-	for (i = 0; i < length * m.ratio; i += m.ratio) {
-		m.zf(&img->data[i]);
+int is_valid_cipher_method(int cipher_type) {
+	int i;
+
+	for (i = 0; cipher_methods[i].id != CHAR_MAX; i++) {
+		if (cipher_methods[i].id == cipher_type)
+			return 1;
 	}
 
+	return 0;
 }
-
-// ===========================================================================
-// default cipher method functions
-
-#define MY_CIPHER_COUNT 4
-#define MY_CIPHER_MASK 0xFC
-
-void my_hide_func(char *buf, char byte) {
-	// TODO
-}
-
-char my_reveal_func(char *buf) {
-	// TODO
-	return 'a';
-}
-
-void my_zeroize_func(char *buf) {
-	buf[0] &= MY_CIPHER_MASK;
-	buf[1] &= MY_CIPHER_MASK;
-	buf[2] &= MY_CIPHER_MASK;
-	buf[3] &= MY_CIPHER_MASK;
-}
-
-struct cipher_method_ my_cipher_method = {
-	.ratio = MY_CIPHER_COUNT,
-	.hf = my_hide_func,
-	.rf = my_reveal_func,
-	.zf = my_zeroize_func,
-};
-
-struct cipher_method_ cipher_methods[] = {
-	{MY_CIPHER_COUNT, my_hide_func, my_reveal_func, my_zeroize_func},
-};
-
 
 // ============================================================================
 // Hashing methods and functions
@@ -164,16 +158,6 @@ out_fail:
 	return NULL;
 }
 
-struct hash_method_ hash_methods[] = {
-	{0, 32, "md5sum", "MD5"},
-	{1, 40, "sha1sum", "SHA1"},
-	{2, 56, "sha224sum", "SHA224"},
-	{3, 64, "sha256sum", "SHA256"},
-	{4, 96, "sha384sum", "SHA384"},
-	{5, 128, "sha512sum", "SHA512"},
-	{UINT_MAX, 0, "", ""},
-};
-
 void print_wrapped_message(struct wrapped_message_ *msg) {
 	unsigned int i;
 	unsigned int length;
@@ -202,4 +186,44 @@ void print_wrapped_message(struct wrapped_message_ *msg) {
 	printf("\n");
 }
 
+int is_valid_hash_method(int hash_type) {
+	int i;
+
+	for (i = 0; hash_methods[i].id != UINT_MAX; i++) {
+		if (hash_methods[i].id == hash_type)
+			return 1;
+	}
+
+	return 0;
+}
+
 // ============================================================================
+// Methods that bring it all together
+
+char split_byte(char mask, char *byte) {
+	return 0;
+}
+
+void hide_byte(char *buf, char byte, struct cipher_method_ m) {
+	int i;
+
+	for (i = 0; i < m.ratio; i++) {
+		buf[i] &= m.mask;
+
+		if (byte != 0)
+			buf[i] += split_byte(m.mask, &byte);
+	}
+}
+
+int zeroize_image(struct bitmap_image_ *image, struct cipher_method_ m) {
+	long int i;
+
+	for (i = 0; i + m.ratio < image->data_size; i+=m.ratio)
+		hide_byte(image->data + i, 0, m);
+
+	return 0;
+}
+
+int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *wrapped_message, struct cipher_method_ m) {
+	return 0;
+}

@@ -143,6 +143,9 @@ struct arguments_ *prepare_arguments(int argc, char *argv[]) {
 		return NULL;
 	}
 
+	if (args->hash_id == UINT_MAX) args->hash_id = 0;
+	if (args->scatter_id == CHAR_MAX) args->scatter_id = 0;
+
 	if (DEBUG)
 		print_arguments(args);
 

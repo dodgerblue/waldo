@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "arguments.h"
 
@@ -13,8 +14,8 @@ struct arguments_* alloc_arguments() {
 		return NULL;
 	}
 
-	result->hash_id = 0;
-	result->scatter_id = 0;
+	result->hash_id = UINT_MAX;
+	result->scatter_id = CHAR_MAX;
 	result->msg_from_file = 0;
 	result->just_zeroize = 0;
 	result->suffix = NULL;

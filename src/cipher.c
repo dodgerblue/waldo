@@ -201,7 +201,20 @@ int is_valid_hash_method(int hash_type) {
 // Methods that bring it all together
 
 char split_byte(char mask, char *byte) {
-	return 0;
+	char result = 0;
+	int i;
+
+	for (i = 0; i < 8; i ++) {
+		if ((mask >> i) & 1)
+			continue;
+
+		if (*byte & 1)
+			result |= 1 << i;
+
+		*byte = *byte >> 1;
+	}
+
+	return result;
 }
 
 void hide_byte(char *buf, char byte, struct cipher_method_ m) {
@@ -224,6 +237,13 @@ int zeroize_image(struct bitmap_image_ *image, struct cipher_method_ m) {
 	return 0;
 }
 
-int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *wrapped_message, struct cipher_method_ m) {
+int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *msg, struct cipher_method_ m) {
+	unsigned int length = msg->msg_length;
+	unsigned int i;
+	char *buf = (char*) msg;
+
+	for (i = 0; i < length; i ++)
+		hide_byte(image->data + i*m.ratio, buf[i], m);
+
 	return 0;
 }

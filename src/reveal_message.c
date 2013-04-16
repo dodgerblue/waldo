@@ -104,7 +104,49 @@ struct bitmap_image_ *prepare_image(struct arguments_ *args) {
 	return image;
 }
 
+int validate_message_all(struct wrapped_message_ *msg, int hash_id) {
+	int i;
+
+	if (hash_id != UINT_MAX)
+		return validate_message(msg, hash_methods[hash_id]);
+
+	if (is_valid_hash_method(msg->hash_id))
+		return validate_message(msg, hash_methods[msg->hash_id]);
+
+	for (i = 0; hash_methods[i].id != UINT_MAX; i++) {
+		if (validate_message(msg, hash_methods[i]))
+			return 1;
+	}
+
+	return 0;
+}
+
+struct wrapped_message_* reveal_and_validate_message(struct bitmap_image_ *image, struct cipher_method_ cm, int hash_id) {
+	struct wrapped_message_ *result = NULL;
+
+	result = recover_message_from_image(image, cm);
+
+	if (result == NULL) {
+		fprintf(stderr, "Unable to recover the wrapped message from the image\n");
+		goto out_fail;
+	}
+
+	if (validate_message_all(result, hash_id) == 0) {
+		fprintf(stderr, "Unable to validate the recovered message\n");
+		free(result);
+		goto out_fail;
+	}
+
+	return result;
+
+out_fail:
+	return NULL;
+}
+
 struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, int scatter_id, int hash_id) {
+	struct wrapped_message_ *result = NULL;
+	int i;
+
 	if (DEBUG) {
 		if (scatter_id == UINT_MAX) printf("Trying all scatter methods\n");
 		else printf("Trying scatter method: %s - %s\n", cipher_methods[scatter_id].codename, cipher_methods[scatter_id].description);
@@ -112,6 +154,13 @@ struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, 
 		if (hash_id == UINT_MAX) printf("Trying all hash methods\n");
 		else printf("Trying hash method %s\n", hash_methods[hash_id].name);
 	}
+
+	if (scatter_id != UINT_MAX)
+		return reveal_and_validate_message(image, cipher_methods[scatter_id], hash_id);
+
+	for (i = 0; cipher_methods[i].id != UINT_MAX; i++)
+		if ((result = reveal_and_validate_message(image, cipher_methods[i], hash_id)) != NULL)
+			return result;
 
 	return NULL;
 }
@@ -149,6 +198,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	if ((message = reveal_message_from_image(image, args->scatter_id, args->hash_id)) == NULL) {
+		fprintf(stderr, "Unable to reveal hidden message from image\n");
+		ret = 1;
+		goto out;
 	}
 
 out:

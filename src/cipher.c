@@ -21,7 +21,7 @@ struct cipher_method_ cipher_methods[] = {
 	{3,"ULTRA","bits 0 and 2 of each pixel", 4, 0xFA},
 	{4,"WIGGLY","bits 1 and 2 of each pixel", 4, 0xF9},
 	{5,"SHIPPY","use ALL the bits!", 1, 0x00},
-	{CHAR_MAX, "", "", 0, 0},
+	{UINT_MAX, "", "", 0, 0},
 };
 
 struct hash_method_ hash_methods[] = {
@@ -50,7 +50,7 @@ int message_fits(struct bitmap_image_ *image, struct wrapped_message_ *msg, stru
 int is_valid_cipher_method(int cipher_type) {
 	int i;
 
-	for (i = 0; cipher_methods[i].id != CHAR_MAX; i++) {
+	for (i = 0; cipher_methods[i].id != UINT_MAX; i++) {
 		if (cipher_methods[i].id == cipher_type)
 			return 1;
 	}
@@ -250,7 +250,6 @@ char reveal_byte(char *buf, struct cipher_method_ m) {
 
 	for (i = 0; i < m.ratio; i++) {
 		merge_byte(m.mask, buf[i], &result);
-		printf("Original: %x\n", buf[i]);
 	}
 
 	return result;
@@ -276,32 +275,40 @@ int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *
 	return 0;
 }
 
-char *recover_buffer_from_image(struct bitmap_image_ *image, int scatter_id) {
-	int length = sizeof(unsigned int) + sizeof(unsigned int);
-	char header[length];
-	struct cipher_method_ cm = cipher_methods[scatter_id];
+struct wrapped_message_ *recover_message_from_image(struct bitmap_image_ *image, struct cipher_method_ cm) {
+	char *result = NULL;
+	unsigned int header_length = sizeof(unsigned int) + sizeof(unsigned int);
+	char header[header_length];
+	unsigned int msg_length;
 	int i;
 
-	for (i = 0; i < length; i++)
+	for (i = 0; i < header_length; i++)
 		header[i] = reveal_byte(image->data + i*cm.ratio, cm);
 
-	if (DEBUG) {
-		printf("Read message header:\n");
-		printf("Hash id: %u %d\n", *(unsigned int *)header, length);
-		printf("Message length: %u\n", *(unsigned int *)(header + sizeof(unsigned int)));
-
-		for (i = 0; i < 8; i ++)
-			printf("%x ",header[i]);
-		printf("\n");
+	if (message_fits(image, (struct wrapped_message_ *) header, cm) == 0) {
+		fprintf(stderr, "Message too big - wouldn't have got in this image\n");
+		goto out_fail;
 	}
 
+	msg_length = *(unsigned int*) (header + 4);
+
+	result = malloc(msg_length);
+	if (result == NULL) {
+		fprintf(stderr, "Unable to alloc memory for message\n");
+		goto out_fail;
+	}
+
+	memcpy(result, header, header_length);
+
+	for (i = header_length; i < msg_length; i ++)
+		result[i] = reveal_byte(image->data + i*cm.ratio, cm);
+
+	return (struct wrapped_message_*) result;
+
+out_fail:
 	return NULL;
 }
 
-// The message that this function returns must be valid - so that the signature corresponds with the content
-struct wrapped_message_* recover_message_from_image(struct bitmap_image_ *image, int scatter_id, int hash_id) {
-	if (scatter_id != CHAR_MAX && hash_id != UINT_MAX)
-		recover_buffer_from_image(image, scatter_id);
-
-	return NULL;
+int validate_message(struct wrapped_message_ *msg, struct hash_method_ hm) {
+	return 0;
 }

@@ -39,7 +39,7 @@ void print_usage(char *program_name) {
 	fprintf(stderr, "\n");
 
 	fprintf(stderr, "\tAvailable scatter methods:\n");
-	for (i = 0; cipher_methods[i].id != CHAR_MAX; i ++) {
+	for (i = 0; cipher_methods[i].id != UINT_MAX; i ++) {
 		fprintf(stderr, "\t%u - %s - %s\n", cipher_methods[i].id, cipher_methods[i].codename, cipher_methods[i].description);
 	}
 	fprintf(stderr, "\n");
@@ -144,7 +144,7 @@ struct arguments_ *prepare_arguments(int argc, char *argv[]) {
 	}
 
 	if (args->hash_id == UINT_MAX) args->hash_id = 0;
-	if (args->scatter_id == CHAR_MAX) args->scatter_id = 0;
+	if (args->scatter_id == UINT_MAX) args->scatter_id = 0;
 
 	if (DEBUG)
 		print_arguments(args);

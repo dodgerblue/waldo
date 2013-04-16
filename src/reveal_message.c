@@ -104,7 +104,17 @@ struct bitmap_image_ *prepare_image(struct arguments_ *args) {
 	return image;
 }
 
+struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, int scatter_id, int hash_id) {
+	if (DEBUG) {
+		if (scatter_id == UINT_MAX) printf("Trying all scatter methods\n");
+		else printf("Trying scatter method: %s - %s\n", cipher_methods[scatter_id].codename, cipher_methods[scatter_id].description);
 
+		if (hash_id == UINT_MAX) printf("Trying all hash methods\n");
+		else printf("Trying hash method %s\n", hash_methods[hash_id].name);
+	}
+
+	return NULL;
+}
 
 int main(int argc, char *argv[]) {
 	int ret = 0;
@@ -138,7 +148,7 @@ int main(int argc, char *argv[]) {
 		goto out;
 	}
 
-	if ((message = recover_message_from_image(image, args->scatter_id, args->hash_id)) == NULL) {
+	if ((message = reveal_message_from_image(image, args->scatter_id, args->hash_id)) == NULL) {
 	}
 
 out:

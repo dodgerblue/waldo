@@ -15,7 +15,7 @@ struct arguments_* alloc_arguments() {
 	}
 
 	result->hash_id = UINT_MAX;
-	result->scatter_id = CHAR_MAX;
+	result->scatter_id = UINT_MAX;
 	result->msg_from_file = 0;
 	result->just_zeroize = 0;
 	result->suffix = NULL;

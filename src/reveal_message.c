@@ -124,6 +124,9 @@ int validate_message_all(struct wrapped_message_ *msg, int hash_id) {
 struct wrapped_message_* reveal_and_validate_message(struct bitmap_image_ *image, struct cipher_method_ cm, int hash_id) {
 	struct wrapped_message_ *result = NULL;
 
+	if (DEBUG)
+		printf("Trying scatter method: %s - %s\n", cm.codename, cm.description);
+
 	result = recover_message_from_image(image, cm);
 
 	if (result == NULL) {
@@ -151,7 +154,7 @@ struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, 
 		if (scatter_id == UINT_MAX) printf("Trying all scatter methods\n");
 		else printf("Trying scatter method: %s - %s\n", cipher_methods[scatter_id].codename, cipher_methods[scatter_id].description);
 
-		if (hash_id == UINT_MAX) printf("Trying all hash methods\n");
+		if (hash_id == UINT_MAX) printf("Trying all hash methods (or the one in the message header, in case it is valid)\n");
 		else printf("Trying hash method %s\n", hash_methods[hash_id].name);
 	}
 
@@ -163,6 +166,45 @@ struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, 
 			return result;
 
 	return NULL;
+}
+
+int write_back_message(struct wrapped_message_ *msg, char *filename, int to_screen) {
+	unsigned int msg_length = msg->msg_length - sizeof(struct wrapped_message_) - hash_methods[msg->hash_id].hash_length;
+	char *message;
+	int ret = 1;
+	int fd;
+
+	message = malloc(msg_length + 1);
+	if (message == NULL) {
+		fprintf(stderr, "Unable to alloc memory for message\n");
+		ret = 0;
+		goto out;
+	}
+
+	memcpy(message, msg->buffer, msg_length);
+	message[msg_length] = '\0';
+
+	if (to_screen) {
+		printf("\nHIDDEN MESSAGE:\n%s\n", message);
+		goto out;
+	}
+
+	fd = open(filename, O_RDWR | O_CREAT, 0666);
+	if (fd == -1) {
+		fprintf(stderr, "Unable to open filename to store message\n");
+		ret = 1;
+		goto out_free_message;
+	}
+
+	// TODO check error codes
+	write(fd, message, msg_length + 1);
+
+	close(fd);
+
+out_free_message:
+	free(message);
+out:
+	return ret;
 }
 
 int main(int argc, char *argv[]) {
@@ -191,7 +233,7 @@ int main(int argc, char *argv[]) {
 		goto out;
 	}
 
-	if (args->scatter_id != CHAR_MAX && is_valid_cipher_method(args->scatter_id) == 0) {
+	if (args->scatter_id != UINT_MAX && is_valid_cipher_method(args->scatter_id) == 0) {
 		fprintf(stderr, "Unsupported cipher method\n");
 		ret = 1;
 		goto out;
@@ -203,7 +245,17 @@ int main(int argc, char *argv[]) {
 		goto out;
 	}
 
+	if (write_back_message(message, args->message, args->msg_from_file) == 0) {
+		fprintf(stderr, "Unable to write back the message to the file\n");
+		ret = 1;
+		goto out;
+	}
+
+	return 0;
+
 out:
+	if (message != NULL)
+		free(message);
 	if (image != NULL)
 		free_bitmap_image(image);
 	if (args != NULL)

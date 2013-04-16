@@ -210,6 +210,7 @@ out_unable_to_allocate_image:
 }
 
 void write_bitmap_image(struct bitmap_image_ *bi, int fd) {
+	// TODO check error codes
 	write(fd, bi->bfh, sizeof(struct bitmap_file_header_));
 	write(fd, bi->bih, sizeof(struct bitmap_info_header_));
 	write(fd, bi->data, bi->data_size);

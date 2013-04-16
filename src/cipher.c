@@ -277,7 +277,7 @@ int hide_message_in_image(struct bitmap_image_ *image, struct wrapped_message_ *
 
 struct wrapped_message_ *recover_message_from_image(struct bitmap_image_ *image, struct cipher_method_ cm) {
 	char *result = NULL;
-	unsigned int header_length = sizeof(unsigned int) + sizeof(unsigned int);
+	unsigned int header_length = sizeof(struct wrapped_message_);
 	char header[header_length];
 	unsigned int msg_length;
 	int i;
@@ -310,5 +310,47 @@ out_fail:
 }
 
 int validate_message(struct wrapped_message_ *msg, struct hash_method_ hm) {
-	return 0;
+	unsigned int text_length = msg->msg_length - sizeof(struct wrapped_message_) - hm.hash_length;
+	char *message;
+	char *hash;
+	char *computed_hash;
+	int ret = 1;
+
+
+	message = malloc(text_length + 1);
+	if (message == NULL) {
+		fprintf(stderr, "Unable to alloc memory for message string\n");
+		ret = 0;
+		goto out;
+	}
+
+	memcpy(message, msg->buffer, text_length);
+	message[text_length] = '\0';
+
+	hash = malloc(hm.hash_length);
+	if (hash == NULL) {
+		fprintf(stderr, "Unable to alloc memory for message hash\n");
+		ret = 0;
+		goto out_free_message;
+	}
+
+	memcpy(hash, msg->buffer + text_length, hm.hash_length);
+
+	computed_hash = hash_message(hm, message);
+	if (computed_hash == NULL) {
+		fprintf(stderr, "Unable to hash message again\n");
+		ret = 0;
+		goto out_free_hash;
+	}
+
+	if (strncmp(hash, computed_hash, hm.hash_length) != 0)
+		ret = 0;
+
+	free(computed_hash);
+out_free_hash:
+	free(hash);
+out_free_message:
+	free(message);
+out:
+	return ret;
 }

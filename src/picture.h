@@ -49,8 +49,8 @@ void print_bitmap_file_header(struct bitmap_file_header_ *bfh);
 void print_dib_header(struct bitmap_info_header_ *dh);
 
 struct bitmap_image_* read_bitmap_image(int file_descriptor);
-// TODO check return codes and everything - make this bullet proof as well
-void write_bitmap_image(struct bitmap_image_ *bi, int file_descriptor);
+
+int write_bitmap_image(struct bitmap_image_ *bi, int file_descriptor);
 void free_bitmap_image(struct bitmap_image_ *bi);
 
 #endif

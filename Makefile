@@ -3,10 +3,10 @@ CC = gcc
 
 all: hide_message reveal_message
 
-hide_message: hide_message.o picture.o cipher.o arguments.o
+hide_message: hide_message.o picture.o cipher.o arguments.o util.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-reveal_message: reveal_message.o picture.o cipher.o arguments.o
+reveal_message: reveal_message.o picture.o cipher.o arguments.o util.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 %.o: src/%.c

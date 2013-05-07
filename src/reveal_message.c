@@ -10,8 +10,9 @@
 #include "picture.h"
 #include "cipher.h"
 #include "arguments.h"
+#include "util.h"
 
-#define DEBUG 1
+int debug = 1;
 
 extern struct hash_method_ hash_methods[];
 extern struct cipher_method_ cipher_methods[];
@@ -43,67 +44,6 @@ void print_usage(char *program_name) {
 	fprintf(stderr, "\n");
 }
 
-struct arguments_ *prepare_arguments(int argc, char *argv[]) {
-	struct arguments_ *args = NULL;
-
-	if (argc < 3 || argv[argc - 1][0] == '-' || argv[argc - 2][0] == '-') {
-		print_usage(argv[0]);
-		return NULL;
-	}
-
-	args = parse_arguments(argc, argv);
-	if (args == NULL) {
-		print_usage(argv[0]);
-		return NULL;
-	}
-
-	if (DEBUG)
-		print_arguments(args);
-
-	return args;
-}
-
-struct bitmap_image_ *get_image(char *image_file) {
-	struct bitmap_image_ *result = NULL;
-	int fd;
-
-	fd = open(image_file, O_RDWR);
-	if (fd == -1) {
-		fprintf(stderr, "Unable to open image file\n");
-		goto out_fail;
-	}
-
-	result = read_bitmap_image(fd);
-	if (result == NULL) {
-		fprintf(stderr, "Unable to read and parse bitmap image\n");
-		close(fd);
-		goto out_fail;
-	}
-
-	return result;
-
-out_fail:
-	return NULL;
-}
-
-struct bitmap_image_ *prepare_image(struct arguments_ *args) {
-	struct bitmap_image_ *image = NULL;
-
-	image = get_image(args->image);
-	if (image == NULL) {
-		fprintf(stderr, "Unable to read the image structure\n");
-		return NULL;
-	}
-
-	if (DEBUG) {
-		printf("Image read successfully\n");
-		print_bitmap_file_header(image->bfh);
-		print_dib_header(image->bih);
-	}
-
-	return image;
-}
-
 int validate_message_all(struct wrapped_message_ *msg, int hash_id) {
 	int i;
 
@@ -124,7 +64,7 @@ int validate_message_all(struct wrapped_message_ *msg, int hash_id) {
 struct wrapped_message_* reveal_and_validate_message(struct bitmap_image_ *image, struct cipher_method_ cm, int hash_id) {
 	struct wrapped_message_ *result = NULL;
 
-	if (DEBUG)
+	if (debug)
 		printf("Trying scatter method: %s - %s\n", cm.codename, cm.description);
 
 	result = recover_message_from_image(image, cm);
@@ -150,7 +90,7 @@ struct wrapped_message_* reveal_message_from_image(struct bitmap_image_ *image, 
 	struct wrapped_message_ *result = NULL;
 	int i;
 
-	if (DEBUG) {
+	if (debug) {
 		if (scatter_id == UINT_MAX) printf("Trying all scatter methods\n");
 		else printf("Trying scatter method: %s - %s\n", cipher_methods[scatter_id].codename, cipher_methods[scatter_id].description);
 
@@ -196,11 +136,15 @@ int write_back_message(struct wrapped_message_ *msg, char *filename, int to_scre
 		goto out_free_message;
 	}
 
-	// TODO check error codes
-	write(fd, message, msg_length + 1);
+	if (write(fd, message, msg_length + 1) == -1) {
+		fprintf(stderr, "Unable to write the message to the file\n");
+		goto out_fail_write;
+	}
 
 	close(fd);
 
+out_fail_write:
+	close(fd);
 out_free_message:
 	free(message);
 out:
@@ -213,10 +157,9 @@ int main(int argc, char *argv[]) {
 	struct bitmap_image_ *image = NULL;
 	struct wrapped_message_ *message = NULL;
 
-	// TODO remove duplicated code by adding an util.{h,c} class
-	// prepare the needed structures
 	if ((args = prepare_arguments(argc, argv)) == NULL) {
 		fprintf(stderr, "Unable to prepare arguments\n");
+		print_usage(argv[0]);
 		ret = 1;
 		goto out;
 	}

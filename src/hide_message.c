@@ -10,8 +10,9 @@
 #include "picture.h"
 #include "cipher.h"
 #include "arguments.h"
+#include "util.h"
 
-#define DEBUG 1
+int debug = 1;
 
 extern struct hash_method_ hash_methods[];
 extern struct cipher_method_ cipher_methods[];
@@ -68,7 +69,7 @@ char* get_message_to_hide(char *message, int is_file) {
 		goto out_seek_fail;
 	}
 
-	if (DEBUG)
+	if (debug)
 		printf("File size: %ld\n", (long int) stop);
 
 	start = lseek(fd, 0, SEEK_SET);
@@ -106,52 +107,6 @@ out_fail:
 	return NULL;
 }
 
-struct bitmap_image_ *get_image(char *image_file) {
-	struct bitmap_image_ *result = NULL;
-	int fd;
-
-	fd = open(image_file, O_RDWR);
-	if (fd == -1) {
-		fprintf(stderr, "Unable to open image file\n");
-		goto out_fail;
-	}
-
-	result = read_bitmap_image(fd);
-	if (result == NULL) {
-		fprintf(stderr, "Unable to read and parse bitmap image\n");
-		close(fd);
-		goto out_fail;
-	}
-
-	return result;
-
-out_fail:
-	return NULL;
-}
-
-struct arguments_ *prepare_arguments(int argc, char *argv[]) {
-	struct arguments_ *args = NULL;
-
-	if (argc < 3 || argv[argc - 1][0] == '-' || argv[argc - 2][0] == '-') {
-		print_usage(argv[0]);
-		return NULL;
-	}
-
-	args = parse_arguments(argc, argv);
-	if (args == NULL) {
-		print_usage(argv[0]);
-		return NULL;
-	}
-
-	if (args->hash_id == UINT_MAX) args->hash_id = 0;
-	if (args->scatter_id == UINT_MAX) args->scatter_id = 0;
-
-	if (DEBUG)
-		print_arguments(args);
-
-	return args;
-}
-
 char *prepare_message(struct arguments_ *args) {
 	char *message = NULL;
 
@@ -161,28 +116,10 @@ char *prepare_message(struct arguments_ *args) {
 		return NULL;
 	}
 
-	if (DEBUG)
+	if (debug)
 		printf("Message to hide: %s\n", message);
 
 	return message;
-}
-
-struct bitmap_image_ *prepare_image(struct arguments_ *args) {
-	struct bitmap_image_ *image = NULL;
-
-	image = get_image(args->image);
-	if (image == NULL) {
-		fprintf(stderr, "Unable to read the image structure\n");
-		return NULL;
-	}
-
-	if (DEBUG) {
-		printf("Image read successfully\n");
-		print_bitmap_file_header(image->bfh);
-		print_dib_header(image->bih);
-	}
-
-	return image;
 }
 
 char *prepare_wrapped_message(int hash_type, char *message) {
@@ -194,7 +131,7 @@ char *prepare_wrapped_message(int hash_type, char *message) {
 		return NULL;
 	}
 
-	if (DEBUG)
+	if (debug)
 		print_wrapped_message((struct wrapped_message_*) msg);
 
 	return msg;
@@ -228,11 +165,17 @@ int write_back_image(struct bitmap_image_ *image, char *filename, char *suffix) 
 
 	free(new_filename);
 
-	write_bitmap_image(image, fd); // TODO check return code and everything
+	if (write_bitmap_image(image, fd) == -1) {
+		fprintf(stderr, "Unable to write back image\n");
+		goto out_fail_write;
+	}
+
 	close(fd);
 
 	return 0;
 
+out_fail_write:
+	close(fd);
 out_fail_open:
 	free(new_filename);
 out_fail:
@@ -249,9 +192,13 @@ int main(int argc, char *argv[]) {
 	// prepare the needed structures
 	if ((args = prepare_arguments(argc, argv)) == NULL) {
 		fprintf(stderr, "Unable to prepare arguments\n");
+		print_usage(argv[0]);
 		ret = 1;
 		goto out;
 	}
+
+	if (args->hash_id == UINT_MAX) args->hash_id = 0;
+	if (args->scatter_id == UINT_MAX) args->scatter_id = 0;
 
 	if ((message = prepare_message(args)) == NULL) {
 		fprintf(stderr, "Unable to prepare message\n");

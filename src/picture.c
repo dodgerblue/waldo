@@ -209,14 +209,28 @@ out_unable_to_allocate_image:
 	return NULL;
 }
 
-void write_bitmap_image(struct bitmap_image_ *bi, int fd) {
-	// TODO check error codes
-	write(fd, bi->bfh, sizeof(struct bitmap_file_header_));
-	write(fd, bi->bih, sizeof(struct bitmap_info_header_));
-	write(fd, bi->data, bi->data_size);
-	if (bi->trailer_size > 0) {
-		write(fd, bi->trailer, bi->trailer_size);
+int write_bitmap_image(struct bitmap_image_ *bi, int fd) {
+
+	if (write(fd, bi->bfh, sizeof(struct bitmap_file_header_)) == -1) {
+		fprintf(stderr, "Unable to write image header\n");
+		return -1;
 	}
+
+	if (write(fd, bi->bih, sizeof(struct bitmap_info_header_)) == -1) {
+		fprintf(stderr, "Unable to write image info header\n");
+		return -1;
+	}
+
+	if (write(fd, bi->data, bi->data_size) == -1) {
+		fprintf(stderr, "Unable to write image data\n");
+		return -1;
+	}
+
+	if (bi->trailer_size > 0)
+		if (write(fd, bi->trailer, bi->trailer_size) == -1) {
+			fprintf(stderr, "Unable to write image trailer\n");
+			return -1;
+		}
 }
 
 void free_bitmap_image(struct bitmap_image_ *bi) {

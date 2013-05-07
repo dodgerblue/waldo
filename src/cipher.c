@@ -110,15 +110,25 @@ char *hash_message(struct hash_method_ hm, char *message) {
 	rw_bytes = read(fd, result, hm.hash_length);
 	if (rw_bytes == -1) {
 		fprintf(stderr, "Unable to read hash from temporary file\n");
-		goto out_free_result;
+		goto out_fail_read;
 	}
 
 	close(fd);
-	unlink(TEMP_FILENAME_IN); // TODO check return code
-	unlink(TEMP_FILENAME_OUT); // TODO check return code
+
+	if (unlink(TEMP_FILENAME_IN) == -1) {
+		fprintf(stderr, "Unable to delete %s\n", TEMP_FILENAME_IN);
+		goto out_free_result;
+	}
+
+	if (unlink(TEMP_FILENAME_OUT) == -1) {
+		fprintf(stderr, "Unable to delete %s\n", TEMP_FILENAME_OUT);
+		goto out_free_result;
+	}
 
 	return result;
 
+out_fail_read:
+	close(fd);
 out_free_result:
 	free(result);
 out_fail:

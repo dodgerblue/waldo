@@ -231,6 +231,8 @@ int write_bitmap_image(struct bitmap_image_ *bi, int fd) {
 			fprintf(stderr, "Unable to write image trailer\n");
 			return -1;
 		}
+
+	return 0;
 }
 
 void free_bitmap_image(struct bitmap_image_ *bi) {
